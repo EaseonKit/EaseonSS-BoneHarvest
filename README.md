@@ -44,7 +44,7 @@ All commands require **OP level 2** or higher.
 ```json
 {
   "enabled": true,
-  "requiredOpLevel": 2
+  "requiredOpLevel": 2 // Requires a server restart to take effect.
 }
 ```
 `config/easeon/easeon.ss.boneharvest.json`
