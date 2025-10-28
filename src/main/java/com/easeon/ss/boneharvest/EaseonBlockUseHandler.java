@@ -14,7 +14,7 @@ import net.minecraft.world.World;
 import java.util.HashMap;
 import java.util.Map;
 
-public class ItemBoneHarvestHandler {
+public class EaseonBlockUseHandler {
     private static final Map<Item, Item> HARVESTABLE_PLANTS = new HashMap<>();
 
     static {
@@ -25,11 +25,11 @@ public class ItemBoneHarvestHandler {
         HARVESTABLE_PLANTS.put(Items.FIREFLY_BUSH, Items.FIREFLY_BUSH);   // 반딧불이 덤불
     }
 
-    public static ActionResult useBlockCallback(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
-        if (!Easeon.CONFIG.isEnabled()) return ActionResult.PASS;
-
+    public static ActionResult useBlock(PlayerEntity player, World world, Hand hand, BlockHitResult hitResult) {
         ItemStack stack = player.getStackInHand(hand);
         Item stackItem = stack.getItem();
+
+        if (world.isClient()) return ActionResult.SUCCESS;
 
         if (stackItem != Items.BONE_MEAL && stackItem != Items.BONE && stackItem != Items.BONE_BLOCK) {
             return ActionResult.PASS;
@@ -43,7 +43,7 @@ public class ItemBoneHarvestHandler {
         }
 
         double x = hitResult.getBlockPos().getX() + 0.5;
-        double y = hitResult.getBlockPos().getY() + 1.0;
+        double y = hitResult.getBlockPos().getY() + 0.50;
         double z = hitResult.getBlockPos().getZ() + 0.5;
 
         // 클라이언트 사이드
@@ -54,11 +54,18 @@ public class ItemBoneHarvestHandler {
         // 서버 사이드 - 파티클 생성
         if (world instanceof ServerWorld serverWorld) {
             for (int i = 0; i < 15; i++) {
-                double dx = x + (world.getRandom().nextDouble() - 0.5) * 0.8;
-                double dy = y + world.getRandom().nextDouble() * 0.5;
-                double dz = z + (world.getRandom().nextDouble() - 0.5) * 0.8;
+                double dx = x + (world.getRandom().nextDouble() - 0.5) * 1;
+                double dy = y + (world.getRandom().nextDouble() * 0.5);
+                double dz = z + (world.getRandom().nextDouble() - 0.5) * 1;
                 serverWorld.spawnParticles(ParticleTypes.HAPPY_VILLAGER, dx, dy, dz, 1, 0.0, 0.1, 0.0, 0.0);
             }
+        }
+
+        int itemsToConsume;
+        if (!player.getAbilities().creativeMode && player.isSneaking()) {
+            itemsToConsume = stack.getCount();
+        } else {
+            itemsToConsume = 1;
         }
 
         int count;
@@ -66,15 +73,15 @@ public class ItemBoneHarvestHandler {
             count = 1;
         } else if (stackItem == Items.BONE) {
             count = 3;
-        } else if (stackItem == Items.BONE_BLOCK) {
-            count = 9;
         } else {
-            return ActionResult.PASS;
+            count = 9;
         }
 
-        stack.decrement(1);
+        if (!player.getAbilities().creativeMode) {
+            stack.decrement(itemsToConsume);
+        }
 
-        ItemEntity drop = new ItemEntity(world, x, y, z, new ItemStack(dropItem, count));
+        ItemEntity drop = new ItemEntity(world, x, y, z, new ItemStack(dropItem, count * itemsToConsume));
         world.spawnEntity(drop);
 
         return ActionResult.SUCCESS;
